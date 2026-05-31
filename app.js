@@ -27,7 +27,7 @@
 
   function renderTables() {
     currentTableId = null;
-    title.textContent = 'Столы';
+    title.textContent = 'Սեղաններ';
     backBtn.hidden = true;
 
     const grid = document.createElement('div');
@@ -37,8 +37,8 @@
       card.className = 'table-card';
       card.innerHTML = `
         <span class="num">${t.id}</span>
-        <span class="label">Стол</span>
-        <span class="count">${t.guests.length} гостей</span>
+        <span class="label">Սեղան</span>
+        <span class="count">${t.guests.length} հյուր</span>
       `;
       card.addEventListener('click', () => renderTable(t.id));
       grid.appendChild(card);
@@ -51,14 +51,14 @@
     const table = tables.find(t => t.id === id);
     if (!table) return renderTables();
     currentTableId = id;
-    title.textContent = `Стол ${id}`;
+    title.textContent = `Սեղան ${id}`;
     backBtn.hidden = false;
 
     content.innerHTML = '';
     if (table.guests.length === 0) {
       const empty = document.createElement('div');
       empty.className = 'empty';
-      empty.textContent = 'Пока никого нет';
+      empty.textContent = 'Դեռ ոչ ոք չկա';
       content.appendChild(empty);
       return;
     }
@@ -95,15 +95,15 @@
       return a.name.localeCompare(b.name, 'ru');
     });
 
-    title.textContent = 'Поиск';
+    title.textContent = 'Որոնում';
     backBtn.hidden = false;
 
     content.innerHTML = '';
     const titleEl = document.createElement('div');
     titleEl.className = 'section-title';
     titleEl.textContent = results.length
-      ? `Найдено: ${results.length}`
-      : 'Ничего не найдено';
+      ? `Գտնված է՝ ${results.length}`
+      : 'Ոչինչ չի գտնվել';
     content.appendChild(titleEl);
 
     if (results.length === 0) return;
@@ -115,7 +115,7 @@
       row.className = 'guest-row';
       row.innerHTML = `
         <span class="name">${highlight(r.name, query)}</span>
-        <span class="table-tag">Стол ${r.tableId}</span>
+        <span class="table-tag">Սեղան ${r.tableId}</span>
       `;
       row.addEventListener('click', () => {
         search.value = '';
