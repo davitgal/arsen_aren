@@ -4,10 +4,59 @@
   const backBtn = document.getElementById('backBtn');
   const search = document.getElementById('search');
   const clearBtn = document.getElementById('clearSearch');
+  const dashboard = document.getElementById('dashboard');
 
   const tables = window.TABLES || [];
   let currentTableId = null;
 
+  // --- Հաճախելիության պահպանում (localStorage) ---
+  const STORAGE_KEY = 'arsen_aren_attendance_v1';
+  let attended = {};
+  try {
+    attended = JSON.parse(localStorage.getItem(STORAGE_KEY)) || {};
+  } catch (e) {
+    attended = {};
+  }
+  function saveAttendance() {
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(attended)); } catch (e) {}
+  }
+  function keyFor(tableId, index) {
+    return tableId + ':' + index;
+  }
+  function isAttended(tableId, index) {
+    return !!attended[keyFor(tableId, index)];
+  }
+  function toggleAttended(tableId, index) {
+    const k = keyFor(tableId, index);
+    if (attended[k]) delete attended[k];
+    else attended[k] = true;
+    saveAttendance();
+    updateDashboard();
+  }
+
+  function totalGuests() {
+    return tables.reduce((s, t) => s + t.guests.length, 0);
+  }
+  function attendedCount() {
+    let n = 0;
+    tables.forEach(t => t.guests.forEach((_, i) => { if (isAttended(t.id, i)) n++; }));
+    return n;
+  }
+
+  function updateDashboard() {
+    dashboard.innerHTML = `
+      <div class="stat-card">
+        <span class="stat-num">${totalGuests()}</span>
+        <span class="stat-label">Ընդամենը</span>
+      </div>
+      <div class="stat-card stat-card--arrived">
+        <span class="stat-num">${attendedCount()}</span>
+        <span class="stat-label">Եկել են</span>
+      </div>
+    `;
+  }
+
+  // --- Տառադարձում՝ լատիներեն ↔ հայերեն ---
   const ARM_TO_LAT = {
     'ա':'a','բ':'b','գ':'g','դ':'d','ե':'e','զ':'z','է':'e','ը':'y',
     'թ':'t','ժ':'zh','ի':'i','լ':'l','խ':'kh','ծ':'ts','կ':'k','հ':'h',
@@ -44,6 +93,33 @@
     return safe;
   }
 
+  // Ստեղծում է հյուրի տող՝ չեկ-նշումով
+  function guestRow(name, tableId, index, opts) {
+    opts = opts || {};
+    const row = document.createElement('div');
+    row.className = 'guest-row' + (isAttended(tableId, index) ? ' attended' : '');
+
+    const left = opts.indexBadge
+      ? `<span class="idx">${index + 1}</span>`
+      : '';
+    const right = opts.tableTag
+      ? `<span class="table-tag">Սեղան ${tableId}</span>`
+      : '';
+    const displayName = opts.query ? highlight(name, opts.query) : escapeHtml(name);
+
+    row.innerHTML = `
+      ${left}
+      <span class="check" aria-hidden="true">✓</span>
+      <span class="name">${displayName}</span>
+      ${right}
+    `;
+    row.addEventListener('click', () => {
+      toggleAttended(tableId, index);
+      row.classList.toggle('attended', isAttended(tableId, index));
+    });
+    return row;
+  }
+
   function renderTables() {
     currentTableId = null;
     title.textContent = 'Սեղաններ';
@@ -52,12 +128,13 @@
     const grid = document.createElement('div');
     grid.className = 'tables-grid';
     tables.forEach(t => {
+      const arrived = t.guests.reduce((s, _, i) => s + (isAttended(t.id, i) ? 1 : 0), 0);
       const card = document.createElement('div');
       card.className = 'table-card';
       card.innerHTML = `
         <span class="num">${t.id}</span>
         <span class="label">Սեղան</span>
-        <span class="count">${t.guests.length} հյուր</span>
+        <span class="count">${arrived}/${t.guests.length} եկել է</span>
       `;
       card.addEventListener('click', () => renderTable(t.id));
       grid.appendChild(card);
@@ -85,13 +162,7 @@
     const list = document.createElement('div');
     list.className = 'guest-list';
     table.guests.forEach((name, i) => {
-      const row = document.createElement('div');
-      row.className = 'guest-row';
-      row.innerHTML = `
-        <span class="idx">${i + 1}</span>
-        <span class="name">${escapeHtml(name)}</span>
-      `;
-      list.appendChild(row);
+      list.appendChild(guestRow(name, id, i, { indexBadge: true }));
     });
     content.appendChild(list);
   }
@@ -100,9 +171,9 @@
     const q = normalize(query);
     const results = [];
     tables.forEach(t => {
-      t.guests.forEach(name => {
+      t.guests.forEach((name, i) => {
         if (normalize(name).includes(q)) {
-          results.push({ name, tableId: t.id });
+          results.push({ name, tableId: t.id, index: i });
         }
       });
     });
@@ -111,7 +182,7 @@
       const ai = normalize(a.name).indexOf(q);
       const bi = normalize(b.name).indexOf(q);
       if (ai !== bi) return ai - bi;
-      return a.name.localeCompare(b.name, 'ru');
+      return a.name.localeCompare(b.name, 'hy');
     });
 
     title.textContent = 'Որոնում';
@@ -130,18 +201,7 @@
     const list = document.createElement('div');
     list.className = 'guest-list';
     results.forEach(r => {
-      const row = document.createElement('div');
-      row.className = 'guest-row';
-      row.innerHTML = `
-        <span class="name">${highlight(r.name, query)}</span>
-        <span class="table-tag">Սեղան ${r.tableId}</span>
-      `;
-      row.addEventListener('click', () => {
-        search.value = '';
-        clearBtn.hidden = true;
-        renderTable(r.tableId);
-      });
-      list.appendChild(row);
+      list.appendChild(guestRow(r.name, r.tableId, r.index, { tableTag: true, query: query }));
     });
     content.appendChild(list);
   }
@@ -170,5 +230,6 @@
     renderTables();
   });
 
+  updateDashboard();
   renderTables();
 })();
