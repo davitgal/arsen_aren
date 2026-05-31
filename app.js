@@ -9,29 +9,100 @@
   const tables = window.TABLES || [];
   let currentTableId = null;
 
-  // --- Հաճախելիության պահպանում (localStorage) ---
+  // --- Հաճախելիության պահպանում (Supabase + localStorage կեշ) ---
   const STORAGE_KEY = 'arsen_aren_attendance_v1';
-  let attended = {};
-  try {
-    attended = JSON.parse(localStorage.getItem(STORAGE_KEY)) || {};
-  } catch (e) {
-    attended = {};
+  const QUEUE_KEY = 'arsen_aren_queue_v1';
+  const REMOTE = !!(window.SUPABASE_URL && window.SUPABASE_ANON_KEY);
+
+  function loadJson(key) {
+    try { return JSON.parse(localStorage.getItem(key)) || {}; } catch (e) { return {}; }
   }
-  function saveAttendance() {
-    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(attended)); } catch (e) {}
+  function saveJson(key, val) {
+    try { localStorage.setItem(key, JSON.stringify(val)); } catch (e) {}
   }
-  function keyFor(tableId, index) {
-    return tableId + ':' + index;
-  }
-  function isAttended(tableId, index) {
-    return !!attended[keyFor(tableId, index)];
-  }
+
+  let attended = loadJson(STORAGE_KEY);   // {key: true}
+  let queue = loadJson(QUEUE_KEY);        // չսինխրոնացված գրառումներ {key: bool}
+
+  function saveAttendance() { saveJson(STORAGE_KEY, attended); }
+  function saveQueue() { saveJson(QUEUE_KEY, queue); }
+
+  function keyFor(tableId, index) { return tableId + ':' + index; }
+  function isAttended(tableId, index) { return !!attended[keyFor(tableId, index)]; }
+
   function toggleAttended(tableId, index) {
     const k = keyFor(tableId, index);
-    if (attended[k]) delete attended[k];
-    else attended[k] = true;
+    const val = !attended[k];
+    if (val) attended[k] = true; else delete attended[k];
     saveAttendance();
     updateDashboard();
+
+    if (REMOTE) {
+      queue[k] = val;
+      saveQueue();
+      remoteSet(k, val)
+        .then(() => { if (queue[k] === val) { delete queue[k]; saveQueue(); } })
+        .catch(() => { /* մնում է հերթում, կփորձենք կրկին */ });
+    }
+  }
+
+  // --- Supabase REST ---
+  function restHeaders(extra) {
+    return Object.assign({
+      'apikey': window.SUPABASE_ANON_KEY,
+      'Authorization': 'Bearer ' + window.SUPABASE_ANON_KEY,
+      'Content-Type': 'application/json'
+    }, extra || {});
+  }
+  function restBase() {
+    return window.SUPABASE_URL.replace(/\/$/, '') + '/rest/v1/attendance';
+  }
+  async function remoteLoad() {
+    const res = await fetch(restBase() + '?select=guest_key,attended', { headers: restHeaders() });
+    if (!res.ok) throw new Error('load ' + res.status);
+    const rows = await res.json();
+    const map = {};
+    rows.forEach(r => { if (r.attended) map[r.guest_key] = true; });
+    return map;
+  }
+  async function remoteSet(key, val) {
+    const res = await fetch(restBase(), {
+      method: 'POST',
+      headers: restHeaders({ 'Prefer': 'resolution=merge-duplicates,return=minimal' }),
+      body: JSON.stringify({ guest_key: key, attended: val, updated_at: new Date().toISOString() })
+    });
+    if (!res.ok) throw new Error('set ' + res.status);
+  }
+
+  async function flushQueue() {
+    if (!REMOTE) return;
+    for (const k of Object.keys(queue)) {
+      try { await remoteSet(k, !!queue[k]); delete queue[k]; saveQueue(); }
+      catch (e) { break; }
+    }
+  }
+
+  function sig(obj) { return Object.keys(obj).sort().join('|'); }
+
+  async function syncFromRemote() {
+    if (!REMOTE) return;
+    try {
+      const remote = await remoteLoad();
+      // remote-ը ճշմարտության աղբյուր է, բայց տեղական չսինխրոնացված գրառումները վերևից
+      const merged = Object.assign({}, remote);
+      Object.keys(queue).forEach(k => { if (queue[k]) merged[k] = true; else delete merged[k]; });
+      const changed = sig(merged) !== sig(attended);
+      attended = merged;
+      saveAttendance();
+      if (changed) { updateDashboard(); rerender(); }
+    } catch (e) { /* պահում ենք կեշը */ }
+  }
+
+  function rerender() {
+    const q = search.value.trim();
+    if (q) renderSearch(q);
+    else if (currentTableId) renderTable(currentTableId);
+    else renderTables();
   }
 
   function totalGuests() {
@@ -232,4 +303,13 @@
 
   updateDashboard();
   renderTables();
+
+  if (REMOTE) {
+    flushQueue().then(syncFromRemote);
+    setInterval(syncFromRemote, 12000);       // պարբերական սինխրոն
+    window.addEventListener('focus', syncFromRemote);
+    document.addEventListener('visibilitychange', () => {
+      if (!document.hidden) syncFromRemote();
+    });
+  }
 })();

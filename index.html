@@ -43,7 +43,9 @@
         s.onload = cb;
         document.body.appendChild(s);
       }
-      load('data.js', function () { load('app.js'); });
+      load('config.js', function () {
+        load('data.js', function () { load('app.js'); });
+      });
     })();
   </script>
 </body>
