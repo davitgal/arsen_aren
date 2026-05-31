@@ -3,6 +3,7 @@
   const title = document.getElementById('title');
   const backBtn = document.getElementById('backBtn');
   const editBtn = document.getElementById('editBtn');
+  const saveBtn = document.getElementById('saveBtn');
   const search = document.getElementById('search');
   const clearBtn = document.getElementById('clearSearch');
   const dashboard = document.getElementById('dashboard');
@@ -23,6 +24,12 @@
   let currentTableId = null;
   let arrivedView = false;
   let editMode = false;
+  let dirty = false;
+
+  function setDirty(val) {
+    dirty = val;
+    saveBtn.disabled = !val;
+  }
 
   // --- Հաճախելիության պահպանում (Supabase + localStorage կեշ) ---
   const STORAGE_KEY = 'arsen_aren_attendance_v2';
@@ -227,10 +234,10 @@
     return row;
   }
 
-  function setTopbar({ back, edit }) {
+  function setTopbar({ back, edit, save }) {
     backBtn.hidden = !back;
     editBtn.hidden = !edit;
-    editBtn.classList.toggle('active', editMode);
+    saveBtn.hidden = !save;
   }
   function setChromeVisible(visible) {
     searchWrap.style.display = visible ? '' : 'none';
@@ -242,7 +249,7 @@
     arrivedView = false;
     editMode = false;
     title.textContent = 'Սեղաններ';
-    setTopbar({ back: false, edit: true });
+    setTopbar({ back: false, edit: true, save: false });
     setChromeVisible(true);
 
     const grid = document.createElement('div');
@@ -268,7 +275,7 @@
     arrivedView = true;
     editMode = false;
     title.textContent = 'Եկել են';
-    setTopbar({ back: true, edit: false });
+    setTopbar({ back: true, edit: false, save: false });
     setChromeVisible(true);
     content.innerHTML = '';
 
@@ -302,7 +309,7 @@
     arrivedView = false;
     editMode = false;
     title.textContent = `Սեղան ${id}`;
-    setTopbar({ back: true, edit: false });
+    setTopbar({ back: true, edit: false, save: false });
     setChromeVisible(true);
     content.innerHTML = '';
     if (table.guests.length === 0) {
@@ -336,7 +343,7 @@
     arrivedView = false;
     editMode = false;
     title.textContent = 'Որոնում';
-    setTopbar({ back: true, edit: false });
+    setTopbar({ back: true, edit: false, save: false });
     setChromeVisible(true);
     content.innerHTML = '';
 
@@ -352,7 +359,6 @@
   }
 
   // === Խմբագրման ռեժիմ ===
-  let saveTimer = null;
   let statusEl = null;
   function flashStatus(text) {
     if (!statusEl) return;
@@ -361,12 +367,17 @@
     clearTimeout(statusEl._t);
     statusEl._t = setTimeout(() => statusEl.classList.remove('show'), 1400);
   }
-  function scheduleSave() {
-    clearTimeout(saveTimer);
-    saveTimer = setTimeout(async () => {
+  async function doSave() {
+    if (!dirty) return;
+    saveBtn.disabled = true;
+    try {
       await remoteSaveRoster();
+      setDirty(false);
       flashStatus('Պահպանված է');
-    }, 700);
+    } catch (e) {
+      saveBtn.disabled = false;
+      flashStatus('Չհաջողվեց պահպանել');
+    }
   }
 
   function loadSortable() {
@@ -410,7 +421,7 @@
       <button class="edit-remove" aria-label="Հեռացնել" type="button">×</button>
     `;
     const input = li.querySelector('.edit-input');
-    input.addEventListener('input', () => { g.name = input.value; scheduleSave(); });
+    input.addEventListener('input', () => { g.name = input.value; setDirty(true); });
     li.querySelector('.edit-remove').addEventListener('click', () => {
       const t = tables.find(x => x.id === tableId);
       if (!t) return;
@@ -427,7 +438,7 @@
         updateDashboard();
       }
       li.remove();
-      scheduleSave();
+      setDirty(true);
     });
     return li;
   }
@@ -436,8 +447,9 @@
     currentTableId = null;
     arrivedView = false;
     editMode = true;
+    setDirty(false);
     title.textContent = 'Խմբագրել';
-    setTopbar({ back: true, edit: true });
+    setTopbar({ back: true, edit: false, save: true });
     setChromeVisible(false);
     content.innerHTML = '<div class="empty">Բեռնում…</div>';
 
@@ -468,7 +480,7 @@
         t.guests.push(g);
         const row = editRow(g, t.id);
         ul.appendChild(row);
-        scheduleSave();
+        setDirty(true);
         const inp = row.querySelector('.edit-input');
         if (inp) inp.focus();
       });
@@ -483,7 +495,7 @@
           animation: 150,
           forceFallback: true,
           fallbackTolerance: 5,
-          onEnd: () => { rebuildFromDOM(); scheduleSave(); }
+          onEnd: () => { rebuildFromDOM(); setDirty(true); }
         });
       }
     });
@@ -512,15 +524,23 @@
     search.focus();
     handleSearch();
   });
+  function leaveEditMode() {
+    if (editMode && dirty) {
+      if (!confirm('Կան չպահպանված փոփոխություններ։ Դուրս գա՞լ։')) return false;
+      setDirty(false);
+    }
+    return true;
+  }
   backBtn.addEventListener('click', () => {
+    if (!leaveEditMode()) return;
     search.value = '';
     clearBtn.hidden = true;
     renderTables();
   });
   editBtn.addEventListener('click', () => {
-    if (editMode) renderTables();
-    else renderEdit();
+    renderEdit();
   });
+  saveBtn.addEventListener('click', doSave);
 
   // --- Մեկնարկ ---
   updateDashboard();

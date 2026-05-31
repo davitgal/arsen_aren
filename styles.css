@@ -31,7 +31,7 @@ html, body {
   border-bottom: 1px solid var(--border);
   padding: env(safe-area-inset-top) 16px 0;
   display: grid;
-  grid-template-columns: 40px 1fr 40px;
+  grid-template-columns: 40px 1fr auto;
   align-items: center;
   gap: 8px;
   min-height: 56px;
@@ -81,7 +81,30 @@ html, body {
   justify-self: end;
 }
 .edit-btn:active { transform: scale(0.92); background: var(--accent); color: #fff; }
-.edit-btn.active { background: var(--orange); color: #fff; }
+
+.save-btn {
+  height: 36px;
+  padding: 0 16px;
+  border-radius: 999px;
+  border: none;
+  background: var(--orange);
+  color: #fff;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  justify-self: end;
+  box-shadow: 0 2px 6px rgba(224,136,26,0.35);
+  transition: transform 0.08s ease, background 0.15s ease, box-shadow 0.15s ease;
+}
+.save-btn:active:not(:disabled) { transform: scale(0.96); }
+.save-btn:disabled {
+  background: var(--border);
+  color: var(--muted);
+  box-shadow: none;
+  cursor: not-allowed;
+}
+.save-btn[hidden] { display: none !important; }
 
 .search-wrap {
   position: sticky;
