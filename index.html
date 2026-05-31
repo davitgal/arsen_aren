@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#1f2937" />
+  <title>Рассадка гостей</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header class="topbar">
+    <button id="backBtn" class="back-btn" aria-label="Назад" hidden>←</button>
+    <h1 id="title">Столы</h1>
+  </header>
+
+  <div class="search-wrap">
+    <input
+      id="search"
+      type="search"
+      inputmode="search"
+      autocomplete="off"
+      placeholder="Поиск гостя (например, Карен)"
+      aria-label="Поиск гостя"
+    />
+    <button id="clearSearch" class="clear-btn" aria-label="Очистить" hidden>✕</button>
+  </div>
+
+  <main id="content" class="content"></main>
+
+  <script src="data.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
