@@ -30,7 +30,8 @@ html, body {
   background: var(--card);
   border-bottom: 1px solid var(--border);
   padding: env(safe-area-inset-top) 16px 0;
-  display: flex;
+  display: grid;
+  grid-template-columns: 40px 1fr 40px;
   align-items: center;
   gap: 8px;
   min-height: 56px;
@@ -41,7 +42,6 @@ html, body {
   font-weight: 600;
   margin: 0;
   padding: 16px 0;
-  flex: 1;
   text-align: center;
 }
 
@@ -63,13 +63,25 @@ html, body {
   transition: transform 0.08s ease;
 }
 .back-btn:active { transform: scale(0.92); }
-.back-btn[hidden] { display: none !important; }
-.back-btn svg { display: block; }
+.back-btn[hidden], .edit-btn[hidden] { visibility: hidden; }
+.back-btn svg, .edit-btn svg { display: block; }
 
-/* keep title centered when back is visible */
-.topbar:has(.back-btn:not([hidden])) h1 {
-  margin-right: 44px;
+.edit-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  background: var(--accent-soft);
+  border: none;
+  color: var(--accent);
+  cursor: pointer;
+  border-radius: 50%;
+  transition: transform 0.08s ease, background 0.12s ease;
+  justify-self: end;
 }
+.edit-btn:active { transform: scale(0.92); background: var(--accent); color: #fff; }
+.edit-btn.active { background: var(--orange); color: #fff; }
 
 .search-wrap {
   position: sticky;
@@ -316,3 +328,114 @@ mark {
   .content { max-width: 720px; margin: 0 auto; }
   .search-wrap { max-width: 720px; margin: 0 auto; }
 }
+
+/* === Խմբագրման ռեժիմ === */
+.edit-section {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  margin-bottom: 14px;
+  overflow: hidden;
+  box-shadow: var(--shadow);
+}
+.edit-head {
+  margin: 0;
+  padding: 12px 16px;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--accent);
+  background: var(--accent-soft);
+  border-bottom: 1px solid var(--border);
+}
+.edit-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  min-height: 12px;
+}
+.edit-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--border);
+  background: var(--card);
+}
+.edit-row:last-child { border-bottom: none; }
+.edit-row.sortable-ghost { opacity: 0.4; background: var(--accent-soft); }
+.edit-row.sortable-chosen { background: var(--accent-soft); }
+.edit-row.sortable-drag { box-shadow: 0 6px 18px rgba(0,0,0,0.18); }
+
+.edit-handle {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--muted);
+  cursor: grab;
+  flex-shrink: 0;
+  touch-action: none;
+  user-select: none;
+}
+.edit-handle:active { cursor: grabbing; color: var(--orange); }
+
+.edit-input {
+  flex: 1;
+  min-width: 0;
+  height: 36px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 0 10px;
+  font-size: 15px;
+  font-family: inherit;
+  color: var(--text);
+  background: var(--bg);
+}
+.edit-input:focus { outline: none; border-color: var(--accent); background: var(--card); }
+
+.edit-remove {
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--muted);
+  font-size: 22px;
+  line-height: 1;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.edit-remove:active { background: #f3d6d6; color: #b54141; }
+
+.edit-add {
+  display: block;
+  width: 100%;
+  padding: 12px;
+  border: none;
+  background: var(--card);
+  color: var(--accent);
+  font-size: 14px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  border-top: 1px dashed var(--border);
+}
+.edit-add:active { background: var(--accent-soft); }
+
+.edit-status {
+  position: sticky;
+  bottom: 12px;
+  margin: 12px auto 0;
+  padding: 8px 14px;
+  background: rgba(74,70,54,0.92);
+  color: #fff;
+  border-radius: 999px;
+  font-size: 13px;
+  text-align: center;
+  width: fit-content;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+.edit-status.show { opacity: 1; }
