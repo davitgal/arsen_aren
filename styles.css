@@ -63,6 +63,8 @@ html, body {
   transition: transform 0.08s ease;
 }
 .back-btn:active { transform: scale(0.92); }
+.back-btn[hidden] { display: none !important; }
+.back-btn svg { display: block; }
 
 /* keep title centered when back is visible */
 .topbar:has(.back-btn:not([hidden])) h1 {
