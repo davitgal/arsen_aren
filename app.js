@@ -107,18 +107,20 @@
     return null;
   }
   async function remoteSaveRoster() {
-    if (!REMOTE) return;
+    if (!REMOTE) throw new Error('no remote');
     const payload = tables.map(t => ({
       id: t.id,
       guests: t.guests.map(g => ({ id: g.id, name: g.name }))
     }));
-    try {
-      await fetch(rosterBase(), {
-        method: 'POST',
-        headers: restHeaders({ 'Prefer': 'resolution=merge-duplicates,return=minimal' }),
-        body: JSON.stringify({ id: 1, data: payload, updated_at: new Date().toISOString() })
-      });
-    } catch (e) {}
+    const res = await fetch(rosterBase(), {
+      method: 'POST',
+      headers: restHeaders({ 'Prefer': 'resolution=merge-duplicates,return=minimal' }),
+      body: JSON.stringify({ id: 1, data: payload, updated_at: new Date().toISOString() })
+    });
+    if (!res.ok) {
+      const txt = await res.text().catch(() => '');
+      throw new Error('save ' + res.status + ' ' + txt.slice(0, 200));
+    }
   }
 
   async function flushQueue() {
@@ -360,12 +362,13 @@
 
   // === Խմբագրման ռեժիմ ===
   let statusEl = null;
-  function flashStatus(text) {
+  function flashStatus(text, isError) {
     if (!statusEl) return;
     statusEl.textContent = text;
+    statusEl.classList.toggle('error', !!isError);
     statusEl.classList.add('show');
     clearTimeout(statusEl._t);
-    statusEl._t = setTimeout(() => statusEl.classList.remove('show'), 1400);
+    statusEl._t = setTimeout(() => statusEl.classList.remove('show'), isError ? 4500 : 1600);
   }
   async function doSave() {
     if (!dirty) return;
@@ -376,7 +379,8 @@
       flashStatus('Պահպանված է');
     } catch (e) {
       saveBtn.disabled = false;
-      flashStatus('Չհաջողվեց պահպանել');
+      console.error('Save failed:', e);
+      flashStatus('Չհաջողվեց: ' + (e.message || 'սխալ'), true);
     }
   }
 
