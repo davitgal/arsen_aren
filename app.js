@@ -8,8 +8,23 @@
   const tables = window.TABLES || [];
   let currentTableId = null;
 
+  const ARM_TO_LAT = {
+    'ա':'a','բ':'b','գ':'g','դ':'d','ե':'e','զ':'z','է':'e','ը':'y',
+    'թ':'t','ժ':'zh','ի':'i','լ':'l','խ':'kh','ծ':'ts','կ':'k','հ':'h',
+    'ձ':'dz','ղ':'gh','ճ':'ch','մ':'m','յ':'y','ն':'n','շ':'sh','ո':'o',
+    'չ':'ch','պ':'p','ջ':'j','ռ':'r','ս':'s','վ':'v','տ':'t','ր':'r',
+    'ց':'ts','փ':'p','ք':'k','օ':'o','ֆ':'f','և':'ev'
+  };
+
+  function translit(s) {
+    s = (s || '').toString().toLowerCase().replace(/ու/g, 'u');
+    let out = '';
+    for (const c of s) out += ARM_TO_LAT[c] !== undefined ? ARM_TO_LAT[c] : c;
+    return out;
+  }
+
   function normalize(str) {
-    return (str || '').toString().toLowerCase().trim();
+    return translit(str).trim();
   }
 
   function escapeHtml(s) {
@@ -22,7 +37,11 @@
     const safe = escapeHtml(name);
     if (!query) return safe;
     const q = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    return safe.replace(new RegExp('(' + q + ')', 'ig'), '<mark>$1</mark>');
+    try {
+      const re = new RegExp('(' + q + ')', 'ig');
+      if (re.test(safe)) return safe.replace(new RegExp('(' + q + ')', 'ig'), '<mark>$1</mark>');
+    } catch (e) {}
+    return safe;
   }
 
   function renderTables() {
