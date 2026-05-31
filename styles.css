@@ -79,6 +79,8 @@ html, body {
   border-radius: 50%;
   transition: transform 0.08s ease, background 0.12s ease;
   justify-self: end;
+  grid-column: 3;
+  grid-row: 1;
 }
 .edit-btn:active { transform: scale(0.92); background: var(--accent); color: #fff; }
 
@@ -96,6 +98,8 @@ html, body {
   justify-self: end;
   box-shadow: 0 2px 6px rgba(224,136,26,0.35);
   transition: transform 0.08s ease, background 0.15s ease, box-shadow 0.15s ease;
+  grid-column: 3;
+  grid-row: 1;
 }
 .save-btn:active:not(:disabled) { transform: scale(0.96); }
 .save-btn:disabled {
