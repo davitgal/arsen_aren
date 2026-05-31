@@ -8,6 +8,7 @@
 
   const tables = window.TABLES || [];
   let currentTableId = null;
+  let arrivedView = false;
 
   // --- Հաճախելիության պահպանում (Supabase + localStorage կեշ) ---
   const STORAGE_KEY = 'arsen_aren_attendance_v1';
@@ -100,7 +101,8 @@
 
   function rerender() {
     const q = search.value.trim();
-    if (q) renderSearch(q);
+    if (arrivedView) renderArrived();
+    else if (q) renderSearch(q);
     else if (currentTableId) renderTable(currentTableId);
     else renderTables();
   }
@@ -116,15 +118,17 @@
 
   function updateDashboard() {
     dashboard.innerHTML = `
-      <div class="stat-card">
+      <div class="stat-card stat-card--total">
         <span class="stat-num">${totalGuests()}</span>
         <span class="stat-label">Ընդամենը</span>
       </div>
-      <div class="stat-card stat-card--arrived">
+      <div class="stat-card stat-card--arrived" id="arrivedCard" role="button" tabindex="0">
         <span class="stat-num">${attendedCount()}</span>
-        <span class="stat-label">Եկել են</span>
+        <span class="stat-label">Եկել են ›</span>
       </div>
     `;
+    const card = document.getElementById('arrivedCard');
+    if (card) card.addEventListener('click', renderArrived);
   }
 
   // --- Տառադարձում՝ լատիներեն ↔ հայերեն ---
@@ -193,6 +197,7 @@
 
   function renderTables() {
     currentTableId = null;
+    arrivedView = false;
     title.textContent = 'Սեղաններ';
     backBtn.hidden = true;
 
@@ -205,7 +210,7 @@
       card.innerHTML = `
         <span class="num">${t.id}</span>
         <span class="label">Սեղան</span>
-        <span class="count">${arrived}/${t.guests.length} եկել է</span>
+        <span class="count"><span class="arrived-num${arrived > 0 ? ' on' : ''}">${arrived}</span>/${t.guests.length} եկել է</span>
       `;
       card.addEventListener('click', () => renderTable(t.id));
       grid.appendChild(card);
@@ -214,10 +219,49 @@
     content.appendChild(grid);
   }
 
+  // Պ.ե-ի ցուցակ՝ ըստ սեղանների (միայն եկածները, դատարկ սեղանները բաց ենք թողնում)
+  function renderArrived() {
+    currentTableId = null;
+    arrivedView = true;
+    title.textContent = 'Եկել են';
+    backBtn.hidden = false;
+    content.innerHTML = '';
+
+    const groups = tables
+      .map(t => ({
+        t,
+        arr: t.guests
+          .map((name, i) => ({ name, i }))
+          .filter(g => isAttended(t.id, g.i))
+      }))
+      .filter(g => g.arr.length > 0);
+
+    if (groups.length === 0) {
+      const empty = document.createElement('div');
+      empty.className = 'empty';
+      empty.textContent = 'Դեռ ոչ ոք չի եկել';
+      content.appendChild(empty);
+      return;
+    }
+
+    groups.forEach(({ t, arr }) => {
+      const head = document.createElement('div');
+      head.className = 'section-title';
+      head.textContent = `Սեղան ${t.id} · ${arr.length}`;
+      content.appendChild(head);
+
+      const list = document.createElement('div');
+      list.className = 'guest-list';
+      arr.forEach(g => list.appendChild(guestRow(g.name, t.id, g.i, {})));
+      content.appendChild(list);
+    });
+  }
+
   function renderTable(id) {
     const table = tables.find(t => t.id === id);
     if (!table) return renderTables();
     currentTableId = id;
+    arrivedView = false;
     title.textContent = `Սեղան ${id}`;
     backBtn.hidden = false;
 
@@ -256,6 +300,7 @@
       return a.name.localeCompare(b.name, 'hy');
     });
 
+    arrivedView = false;
     title.textContent = 'Որոնում';
     backBtn.hidden = false;
 
