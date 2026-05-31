@@ -258,12 +258,15 @@
     grid.className = 'tables-grid';
     tables.forEach(t => {
       const arrived = t.guests.reduce((s, g) => s + (isAttendedId(g.id) ? 1 : 0), 0);
+      const total = t.guests.length;
+      const full = total > 0 && arrived === total;
       const card = document.createElement('div');
-      card.className = 'table-card';
+      card.className = 'table-card' + (full ? ' table-card--full' : '');
       card.innerHTML = `
+        ${full ? '<span class="table-check" aria-hidden="true"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5L20 7"/></svg></span>' : ''}
         <span class="num">${t.id}</span>
         <span class="label">Սեղան</span>
-        <span class="count"><span class="arrived-num${arrived > 0 ? ' on' : ''}">${arrived}</span>/${t.guests.length} եկել է</span>
+        <span class="count"><span class="arrived-num${arrived > 0 ? ' on' : ''}">${arrived}</span>/${total} եկել է</span>
       `;
       card.addEventListener('click', () => renderTable(t.id));
       grid.appendChild(card);

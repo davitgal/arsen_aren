@@ -226,8 +226,32 @@ html, body {
   box-shadow: var(--shadow);
   cursor: pointer;
   transition: transform 0.08s ease;
+  position: relative;
 }
 .table-card:active { transform: scale(0.97); }
+
+.table-card--full {
+  background: #dff0c4;
+  border-color: var(--arrived);
+}
+.table-card--full .num { color: var(--arrived); }
+.table-card--full .count { color: var(--arrived); }
+.table-card--full .arrived-num.on { color: var(--arrived); }
+
+.table-check {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--arrived);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.table-check svg { display: block; }
 
 .table-card .num {
   font-size: 28px;
