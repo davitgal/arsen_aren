@@ -124,7 +124,10 @@
       </div>
       <div class="stat-card stat-card--arrived" id="arrivedCard" role="button" tabindex="0">
         <span class="stat-num">${attendedCount()}</span>
-        <span class="stat-label">Եկել են ›</span>
+        <span class="stat-label">Եկել են</span>
+        <svg class="stat-chevron" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M9 6 L15 12 L9 18"/>
+        </svg>
       </div>
     `;
     const card = document.getElementById('arrivedCard');
